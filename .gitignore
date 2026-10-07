@@ -1,0 +1,6 @@
+# ESPHome build files and cache
+.esphome/
+
+# ESPHome secrets (contains sensitive WiFi credentials, keys, passwords)
+secrets.yaml
+

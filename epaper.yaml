@@ -1,0 +1,616 @@
+esphome:
+  name: epaper
+  friendly_name: ePaper
+  on_boot:
+    priority: 200.0
+    then:
+      - wait_until:
+            condition:
+              lambda: 'return id(data_updated) == true;'
+      # Wait a bit longer so all the items are received
+      
+      - delay: 5s
+      - logger.log: "Initial sensor data received: Refreshing display..."
+      - component.update: main_display
+
+
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+#   advanced:
+#     minimum_chip_revision: "3.1"
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "UWhTbJWI5v1ffUnt0daeHP5SntSPIJqz/W/0FH+XW6E="
+
+ota:
+  - platform: esphome
+    password: "dda3790e2a64ff318d2bb474645fa5ce"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Epaper Fallback Hotspot"
+    password: "mXrF8wens077"
+
+captive_portal:
+    
+globals:
+  - id: data_updated
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: initial_data_received
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: recorded_display_refresh
+    type: int
+    restore_value: yes
+    initial_value: '0'
+# Example configuration entry
+
+#external_components:
+#  - source: github://pr#6209
+#    components: [ waveshare_epaper ]
+
+font:
+  - file: "gfonts://Montserrat@600"
+    id: font_big
+    size: 25
+  - file: "gfonts://Montserrat@600"
+    id: font_small
+    size: 12 
+  - file: "gfonts://Montserrat@600"
+    id: font_medium
+    size: 16
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: battery_icons_40
+    size: 40
+    glyphs: [
+      "\uF30d", # mdi-battery-0 f30d
+      "\uF30c", # mdi-battery-10
+      "\uF30b", # mdi-battery-20
+      "\uF30a", # mdi-battery-30
+      "\uF309", # mdi-battery-40
+      "\uF308", # mdi-battery-50
+      "\uF307", # mdi-battery-60
+      "\uF304", # mdi-battery (full)
+      "\uF302", # mdi-battery-unknown
+      "\uf301", #batt export
+      ]
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: grid_icons_30
+    size: 30
+    glyphs: [
+      "\uf102", # plug
+      "\uec0f",  # solar PV
+      "\ueb1c" # car
+      ]
+  - file: 'fonts/materialdesigniconswebfont.ttf' 
+    id: icon_today
+    size: 100
+    glyphs: &mdi-weather-glyphs
+      - "\U000F0590" # mdi-weather-cloudy
+      - "\U000F0F2F" # mdi-weather-cloudy-alert
+      - "\U000F0E6E" # mdi-weather-cloudy-arrow-right
+      - "\U000F0593" # mdi-weather-lightning
+      - "\U000F067E" # mdi-weather-lightning-rainy
+      - "\U000F0594" # mdi-weather-night
+      - "\U000F0F31" # mdi-weather-night-partly-cloudy      
+      - "\U000F0595" # mdi-weather-partly-cloudy
+      - "\U000F0F32" # mdi-weather-partly-lightning
+      - "\U000F0F33" # mdi-weather-partly-rainy
+      - "\U000F0596" # mdi-weather-pouring
+      - "\U000F0597" # mdi-weather-rainy
+      - "\U000F0599" # mdi-weather-sunny
+      - "\U000F0F37" # mdi-weather-sunny-alert
+      - "\U000F14E4" # mdi-weather-sunny-off
+      - "\U000F059A" # mdi-weather-sunset
+      - "\U000F059B" # mdi-weather-sunset-down
+      - "\U000F059C" # mdi-weather-sunset-up
+      - "\U000F059D" # mdi-weather-windy
+      - "\U000F059E" # mdi-weather-windy-variant
+      - "\U000F0591" # mdi-weather-fog
+      - "\U000F0592" # mdi-weather-hail
+      - "\U000F0F30" # mdi-weather-hazy   
+  #forecast icon
+  - file: 'fonts/materialdesigniconswebfont.ttf'
+    id: icon_forecast
+    size: 40
+    glyphs: *mdi-weather-glyphs
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: icon_monzo
+    size: 20
+    glyphs: [
+      "\uef97",  # gorceries
+      "\ue8f9", # work
+      "\uf8ff" # spends
+      ]
+
+spi:
+  clk_pin: GPIO13
+  mosi_pin: GPIO14
+
+external_components:
+  - source: github://pr#6209
+    components: [ waveshare_epaper ]
+
+color:
+  - id: paper_white # Really black, but will appear white on e-paper
+    hex: "000000"
+  - id: paper_black # Really white, but will appear black on e-paper
+    hex: "FFFFFF"
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+
+
+sensor:
+  - platform: homeassistant # SENSOR and updates for Battery SOC %
+    entity_id: sensor.sigen_inverter_battery_state_of_charge
+    id: battery_soc
+  - platform: homeassistant # SENSOR and updates for Battery SOC %
+    entity_id: sensor.sigen_plant_daily_grid_export_energy
+    id: daily_export
+  - platform: homeassistant # SENSOR and updates for Battery SOC %
+    entity_id: sensor.sigen_plant_daily_grid_import_energy
+    id: daily_import
+  - platform: homeassistant # SENSOR and updates for Battery SOC %
+    entity_id: sensor.sigen_inverter_daily_pv_energy
+    id: daily_PV
+  - platform: homeassistant
+    id: pv_hour_1
+    entity_id: input_number.pv_hour_1
+  - platform: homeassistant
+    id: pv_hour_2
+    entity_id: input_number.pv_hour_2
+  - platform: homeassistant
+    id: pv_hour_3
+    entity_id: input_number.pv_hour_3
+  - platform: homeassistant
+    id: pv_hour_4
+    entity_id: input_number.pv_hour_4
+  - platform: homeassistant
+    id: pv_hour_5
+    entity_id: input_number.pv_hour_5
+  - platform: homeassistant
+    id: pv_hour_6
+    entity_id: input_number.pv_hour_6
+  - platform: homeassistant
+    id: pv_hour_7
+    entity_id: input_number.pv_hour_7
+  - platform: homeassistant 
+    entity_id: sensor.kona_ev_range
+    id: kona_ev_range
+  - platform: homeassistant
+    entity_id: sensor.groceries_balance
+    id: groceries_balance
+  - platform: homeassistant
+    entity_id: sensor.spends_balance
+    id: spends_balance
+  - platform: homeassistant
+    entity_id: sensor.work_balance
+    id: work_balance
+  - platform: homeassistant
+    entity_id: input_number.monzo_spends_max
+    id: spends_max
+  - platform: homeassistant
+    entity_id: input_number.monzo_groceries_max
+    id: groceries_max
+  - platform: homeassistant
+    entity_id: input_number.monzo_work_max
+    id: work_max
+  - platform: homeassistant
+    entity_id: number.pct_of_month
+    id: pct_of_month
+
+text_sensor:
+  - platform: homeassistant
+    entity_id: sensor.weather_daily
+    id: today_weather
+
+  - platform: homeassistant
+    entity_id: sensor.weather_daily 
+    attribute: today_temperature_max
+    id: today_temperature_max
+
+  - platform: homeassistant
+    entity_id: sensor.weather_daily 
+    attribute: today_temperature_min
+    id: today_temperature_min
+
+  - platform: homeassistant
+    entity_id: sensor.weather_daily
+    attribute: today_precipitation
+    id: today_precipitation
+
+  - platform: homeassistant
+    entity_id: sensor.weather_daily
+    attribute: today_wind
+    id: today_wind
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_weekday_1
+    id: forecast_weekday_1
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_condition_1
+    id: forecast_weather_1
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_temperature_1
+    id: forecast_temperature_1
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_weekday_2
+    id: forecast_weekday_2
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_condition_2
+    id: forecast_weather_2
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_temperature_2
+    id: forecast_temperature_2
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_weekday_3
+    id: forecast_weekday_3
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_condition_3
+    id: forecast_weather_3
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_temperature_3
+    id: forecast_temperature_3
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_weekday_4
+    id: forecast_weekday_4
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_condition_4
+    id: forecast_weather_4
+
+  - platform: homeassistant
+    entity_id: sensor.weather_hourly
+    attribute: forecast_temperature_4
+    id: forecast_temperature_4
+    on_value:
+      then:
+        - lambda: 'id(data_updated) = true;'
+
+display:
+  - platform: waveshare_epaper
+    id: main_display
+    cs_pin:
+      number: GPIO15
+      ignore_strapping_warning: True
+    dc_pin: GPIO27
+    busy_pin: 
+      number: GPIO25
+    #  inverted: true
+    reset_pin: GPIO26
+
+    model:  4.20in-v2
+
+    #reset_duration: 2ms
+    #auto_clear_enabled: false
+    update_interval: 600s
+
+    lambda: |-                
+      int summary_top = 20;
+      
+      int data_top = 88;
+      int big_space = 28;    
+      int med_space = 20;  
+      char buf_data[20];
+
+      //************************ FORECAST ************************
+      int forecast_y=180;
+      int forecast_icon_gap=30;
+      int forecast_data_gap=80;
+
+      int forecast_x = 25;
+      int forecast_x_gap = 50;
+
+      int screen_height = 300;
+
+      it.line(10, data_top-18, 190, data_top-18); 
+      it.line(210, data_top-18, 390, data_top-18); 
+      it.line(10, forecast_y-12, 190, forecast_y-12); 
+      it.line(210, forecast_y-12, 390, forecast_y-12); 
+
+      std::string icon;
+      float x=id(battery_soc).state;
+      if (x > 99.9) {
+          icon = "\uF304"; // mdi-battery (full)
+      } else if (x > 90) {
+          icon = "\uF307"; // mdi-battery-90
+      } else if (x > 75) {
+          icon = "\uF308"; // mdi-battery-80
+      } else if (x > 60) {
+           icon = "\uF309"; // mdi-battery-70
+      } else if (x > 45) {
+          icon = "\uF30a"; // mdi-battery-60
+      } else if (x > 30) {
+          icon = "\uF30b"; // mdi-battery-50
+      } else if (x > 15) {
+          icon = "\uF30c"; // mdi-battery-40
+      } else if (x > 0) {
+          icon = "\uF30d"; // mdi-battery-outline
+      } else {
+          icon = "\uF302"; // mdi-battery-unknown
+      }
+      snprintf(buf_data, sizeof(buf_data),  "%s", icon.c_str());  it.print(230, summary_top , id(battery_icons_40), TextAlign::CENTER , buf_data );
+      snprintf(buf_data, sizeof(buf_data),  "%.1f%%", id(battery_soc).state);       it.print(390, summary_top, id(font_big),   TextAlign::CENTER_RIGHT, buf_data);
+      
+      it.print(230, summary_top + big_space , id(grid_icons_30), TextAlign::CENTER , "\ueb1c");
+      snprintf(buf_data, sizeof(buf_data), "%.0fm", id(kona_ev_range).state / 1.6); it.print(390, summary_top + big_space, id(font_big), TextAlign::CENTER_RIGHT, buf_data);
+
+      //  it.print(230, data_top , id(battery_icons_40) , TextAlign::CENTER, "\uf301");
+      //  it.print(230, data_top + big_space , id(grid_icons_30) , TextAlign::CENTER, "\uf102");
+      //  it.print(230, data_top + big_space*2 , id(grid_icons_30) , TextAlign::CENTER, "\uec0f");
+      
+      // 2. Define the bounding box
+      int start_x = 235;
+      int start_y = data_top-4;
+      int chart_w = 390 - start_x;
+      int chart_h = forecast_y - 10 - data_top;
+
+      int pctm = start_x + chart_w * (100 - id(pct_of_month).state) / 100;
+      it.line(pctm, start_y-7, pctm, start_y-3 );
+      
+      int num_bars = 3;
+      int bar_spacing = chart_h / num_bars; // 200 width / 8 bars
+      int bar_h = bar_spacing-5;       // leaves a 5px gap between bars
+
+      int border_size = 5;
+      int txt_area_h = bar_h - 2*border_size;
+      int txt_area_w = 35;
+
+      char buf_mon[6];
+
+      int bar_w = (int)(id(spends_balance).state / id(spends_max).state * chart_w);
+      if (bar_w > chart_w) {bar_w = chart_w;}
+      snprintf(buf_mon, sizeof(buf_mon), "£%.2f",id(spends_balance).state);
+      
+      it.rectangle(start_x,start_y,chart_w,bar_h);
+      if (bar_w < border_size) {
+        it.filled_rectangle(start_x, start_y, bar_w, bar_h); }
+      else {
+        it.filled_rectangle(start_x, start_y, border_size, bar_h);
+           
+        if (bar_w < txt_area_w) {
+          it.filled_rectangle(start_x+border_size, start_y, bar_w-border_size,  border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h , bar_w-border_size, border_size); }
+        else {
+          it.filled_rectangle(start_x+border_size, start_y, txt_area_w , border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h, txt_area_w , border_size); 
+          it.filled_rectangle(start_x+txt_area_w+border_size, start_y , bar_w - txt_area_w  - border_size , bar_h); 
+        }
+      }
+      it.print(start_x  +txt_area_w/2 + border_size, start_y + bar_h/2, id(font_small), id(paper_black), TextAlign::CENTER, buf_mon);
+      it.print(start_x-15 , start_y + bar_h/2, id(icon_monzo) , TextAlign::CENTER, "\uf8ff");
+
+      
+      start_y = start_y + bar_spacing;
+      bar_w = (int)(id(work_balance).state / id(work_max).state * chart_w);
+      if (bar_w > chart_w) {bar_w = chart_w;}
+      snprintf(buf_mon, sizeof(buf_mon), "£%.2f",id(work_balance).state);
+
+      it.rectangle(start_x,start_y,chart_w,bar_h);
+      if (bar_w < border_size) {
+        it.filled_rectangle(start_x, start_y, bar_w, bar_h); }
+      else {
+        it.filled_rectangle(start_x, start_y, border_size, bar_h);
+           
+        if (bar_w < txt_area_w) {
+          it.filled_rectangle(start_x+border_size, start_y, bar_w-border_size,  border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h , bar_w-border_size, border_size); }
+        else {
+          it.filled_rectangle(start_x+border_size, start_y, txt_area_w , border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h, txt_area_w  , border_size); 
+          it.filled_rectangle(start_x+txt_area_w+border_size, start_y , bar_w - txt_area_w - border_size, bar_h); 
+        }
+      }
+      it.print(start_x  +txt_area_w/2 + border_size, start_y + bar_h/2, id(font_small), id(paper_black), TextAlign::CENTER, buf_mon);
+      it.print(start_x-15 , start_y +  bar_h/2, id(icon_monzo) , TextAlign::CENTER, "\ue8f9");
+
+
+      start_y = start_y + bar_spacing;
+      bar_w = (int)(id(groceries_balance).state / id(groceries_max).state * chart_w);
+      if (bar_w > chart_w) {bar_w = chart_w;}
+      snprintf(buf_mon, sizeof(buf_mon), "£%.2f",id(groceries_balance).state);
+
+      it.rectangle(start_x,start_y,chart_w,bar_h);
+      if (bar_w < border_size) {
+        it.filled_rectangle(start_x, start_y, bar_w, bar_h); }
+      else {
+        it.filled_rectangle(start_x, start_y, border_size, bar_h);
+           
+        if (bar_w < txt_area_w + border_size) {
+          it.filled_rectangle(start_x+border_size, start_y, bar_w-border_size,  border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h , bar_w-border_size, border_size); }
+        else {
+          it.filled_rectangle(start_x+border_size, start_y, txt_area_w , border_size);
+          it.filled_rectangle(start_x+border_size, start_y + border_size + txt_area_h, txt_area_w , border_size); 
+          it.filled_rectangle(start_x+txt_area_w+border_size, start_y , bar_w - txt_area_w - border_size, bar_h); 
+        }
+      }
+      it.print(start_x  +txt_area_w/2 + border_size, start_y + bar_h/2, id(font_small), id(paper_black), TextAlign::CENTER, buf_mon);
+      it.print(start_x-15 , start_y +  bar_h/2, id(icon_monzo) , TextAlign::CENTER, "\uef97");
+
+
+            
+      // 1. Load the data from oldest (7 hours ago) to newest (current hour)
+      std::vector<float> pv_data = {
+        id(pv_hour_7).has_state() ? id(pv_hour_7).state : 0.0f,
+        id(pv_hour_6).has_state() ? id(pv_hour_6).state : 0.0f,
+        id(pv_hour_5).has_state() ? id(pv_hour_5).state : 0.0f,
+        id(pv_hour_4).has_state() ? id(pv_hour_4).state : 0.0f,
+        id(pv_hour_3).has_state() ? id(pv_hour_3).state : 0.0f,
+        id(pv_hour_2).has_state() ? id(pv_hour_2).state : 0.0f,
+        id(pv_hour_1).has_state() ? id(pv_hour_1).state : 0.0f
+      };
+
+      // 2. Define the bounding box
+      start_x = 210;
+      start_y = forecast_y;
+      chart_w = 180;
+      chart_h = screen_height - 10 - forecast_y;
+      
+      num_bars = 7;
+      bar_spacing = chart_w / num_bars; // 200 width / 8 bars
+      bar_w = bar_spacing-1;       // leaves a 5px gap between bars
+
+      // 3. Find the maximum value to scale the Y-axis dynamically
+      float max_val = 0.1; // Baseline to prevent division by zero
+      for (float v : pv_data) {
+        if (!isnan(v) && v > max_val) {
+          max_val = v;
+        }
+      }
+
+      // 5. Calculate and draw each bar
+      for (int i = 0; i < num_bars; i++) {
+        float val = pv_data[i];
+        if (isnan(val)) val = 0;
+
+        // Calculate height proportionally to the max value
+        int bar_h = (val / max_val) * (chart_h-12);
+        if (bar_h==0) {bar_h=1;}
+        
+        // Calculate X and Y coordinates
+        int x = start_x + (i * bar_spacing);
+        int y = (start_y + chart_h) - bar_h; // Subtract height from bottom edge
+
+        // Draw the filled bar. If your e-paper requires specific colors, 
+        // add COLOR_ON or paper_black as the 5th argument.
+        it.filled_rectangle(x, y, bar_w, bar_h);
+
+        if (bar_h > 12) {
+          // Position text in the horizontal center of the bar, and 2px down from the top edge
+          int text_x = x + (bar_w / 2);
+          int text_y = y - 12;
+          char buf_cht[6];
+          snprintf(buf_cht, sizeof(buf_cht), "%.1f", val);
+          // Print value formatted to 1 decimal place ("%.1f").
+          // COLOR_OFF is used to "erase" the pixels inside the black bar, making the text white.
+          it.print(text_x, text_y, id(font_small), id(paper_black), TextAlign::TOP_CENTER, buf_cht);
+        }
+      }
+
+      // Map weather states to MDI characters.
+      std::map<std::string, std::string> weather_icon_map
+        {
+          {"cloudy", "\U000F0590"},
+          {"cloudy-alert", "\U000F0F2F"},
+          {"fog", "\U000F0591"},
+          {"hail", "\U000F0592"},
+          {"hazy", "\U000F0F30"},
+          {"lightning", "\U000F0593"},
+          {"lightning-rainy", "\U000F067E"},
+          {"clear-night", "\U000F0594"},
+          {"night", "\U000F0594"},
+          {"night-partly-cloudy", "\U000F0F31"},          
+          {"partlycloudy", "\U000F0595"},
+          {"partly-lightning", "\U000F0F32"},
+          {"partly-rainy", "\U000F0F33"},
+          {"pouring", "\U000F0596"},
+          {"rainy", "\U000F0597"},
+          {"sunny", "\U000F0599"},
+          {"sunny-alert", "\U000F0F37"},
+          {"sunny-off", "\U000F14E4"},
+          {"sunset", "\U000F059A"},
+          {"sunset-down", "\U000F059B"},
+          {"sunset-up", "\U000F059C"},
+          {"windy", "\U000F059D"},
+          {"windy-variant", "\U000F059E"},
+        };    
+
+      //************************ TODAY ************************
+           
+      //Date
+      it.strftime(100, summary_top, id(font_big),id(paper_black), TextAlign::CENTER, "%d %b %Y", id(ha_time).now());
+
+      //weekday
+      it.strftime(100, summary_top + big_space, id(font_big),id(paper_black), TextAlign::CENTER, "%A", id(ha_time).now());
+      
+      //************************ TODAY WEATHER ************************
+      int today_temp_y=305;
+      //icon
+      it.print(10, data_top + big_space,  id(icon_today),id(paper_black), TextAlign::CENTER_LEFT, weather_icon_map[ id(today_weather).state.c_str() ].c_str());
+      
+      //temperature
+      it.print(180, data_top , id(font_medium),id(paper_black), TextAlign::CENTER_RIGHT,  id(today_temperature_min).state.c_str() );
+
+      //temperature
+      it.print(180, data_top + med_space, id(font_medium),id(paper_black), TextAlign::CENTER_RIGHT,  id(today_temperature_max).state.c_str() );
+      
+      //precipitation
+      it.print(180, data_top + med_space*2, id(font_medium),id(paper_black), TextAlign::CENTER_RIGHT, id(today_precipitation).state.c_str());
+
+      //wind
+      it.print(180, data_top + med_space*3, id(font_medium),id(paper_black), TextAlign::CENTER_RIGHT, id(today_wind).state.c_str());
+      
+
+      
+      //HOUR1
+      //weekday
+      it.printf(forecast_x, forecast_y, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_weekday_1).state.c_str()); 
+      //icon
+      it.printf(forecast_x, forecast_y+forecast_icon_gap, id(icon_forecast),id(paper_black), TextAlign::TOP_CENTER, "%s", weather_icon_map[id(forecast_weather_1).state.c_str()].c_str()); 
+      //temperature
+      it.printf(forecast_x, forecast_y+forecast_data_gap, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_temperature_1).state.c_str()); 
+      
+       
+      //HOUR2
+      //weekday
+      it.printf(forecast_x + forecast_x_gap, forecast_y, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_weekday_2).state.c_str());  
+      //icon
+      it.printf(forecast_x + forecast_x_gap, forecast_y+forecast_icon_gap, id(icon_forecast),id(paper_black), TextAlign::TOP_CENTER, "%s", weather_icon_map[id(forecast_weather_2).state.c_str()].c_str()); 
+      //temperature
+      it.printf(forecast_x + forecast_x_gap, forecast_y+forecast_data_gap, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_temperature_2).state.c_str());  
+      
+      //HOUR3
+      //weekday
+      it.printf(forecast_x + forecast_x_gap*2, forecast_y, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_weekday_3).state.c_str());  
+      //icon
+      it.printf(forecast_x + forecast_x_gap*2, forecast_y+forecast_icon_gap, id(icon_forecast),id(paper_black), TextAlign::TOP_CENTER, "%s", weather_icon_map[id(forecast_weather_3).state.c_str()].c_str()); 
+      //temperature
+      it.printf(forecast_x + forecast_x_gap*2, forecast_y+forecast_data_gap, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_temperature_3).state.c_str());        
+      
+      
+      //HOUR4
+      //weekday
+      it.printf(forecast_x + forecast_x_gap*3, forecast_y, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_weekday_4).state.c_str());
+      //icon
+      it.printf(forecast_x + forecast_x_gap*3, forecast_y+forecast_icon_gap, id(icon_forecast),id(paper_black), TextAlign::TOP_CENTER, "%s", weather_icon_map[id(forecast_weather_4).state.c_str()].c_str());
+      //temperature
+      it.printf(forecast_x + forecast_x_gap*3, forecast_y+forecast_data_gap, id(font_medium),id(paper_black), TextAlign::TOP_CENTER, "%s", id(forecast_temperature_4).state.c_str());       

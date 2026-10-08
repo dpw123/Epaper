@@ -28,11 +28,12 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "UWhTbJWI5v1ffUnt0daeHP5SntSPIJqz/W/0FH+XW6E="
+    key: !secret ha_api
 
 ota:
   - platform: esphome
     password: "dda3790e2a64ff318d2bb474645fa5ce"
+    #!secret ota_pw
 
 wifi:
   ssid: !secret wifi_ssid
@@ -41,7 +42,7 @@ wifi:
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Epaper Fallback Hotspot"
-    password: "mXrF8wens077"
+    password: !secret wifi_password
 
 captive_portal:
     
@@ -97,7 +98,7 @@ font:
       "\uec0f",  # solar PV
       "\ueb1c" # car
       ]
-  - file: 'fonts/materialdesigniconswebfont.ttf' 
+  - file: 'fonts/materialdesignicons-webfont.ttf' 
     id: icon_today
     size: 100
     glyphs: &mdi-weather-glyphs
@@ -125,7 +126,7 @@ font:
       - "\U000F0592" # mdi-weather-hail
       - "\U000F0F30" # mdi-weather-hazy   
   #forecast icon
-  - file: 'fonts/materialdesigniconswebfont.ttf'
+  - file: 'fonts/materialdesignicons-webfont.ttf'
     id: icon_forecast
     size: 40
     glyphs: *mdi-weather-glyphs
@@ -556,11 +557,31 @@ display:
 
       //************************ TODAY ************************
            
-      //Date
-      it.strftime(100, summary_top, id(font_big),id(paper_black), TextAlign::CENTER, "%d %b %Y", id(ha_time).now());
+      auto now = id(ha_time).now();
+      if (now.is_valid()) {
+        // Date: ddd d mmm (e.g. Wed 7 Oct)
+        char buf_date[20];
+        char day_str[8];
+        char mon_str[8];
+        now.strftime(day_str, sizeof(day_str), "%a");
+        now.strftime(mon_str, sizeof(mon_str), "%b");
+        snprintf(buf_date, sizeof(buf_date), "%s %d %s", day_str, now.day_of_month, mon_str);
+        it.print(100, summary_top, id(font_big), id(paper_black), TextAlign::CENTER, buf_date);
 
-      //weekday
-      it.strftime(100, summary_top + big_space, id(font_big),id(paper_black), TextAlign::CENTER, "%A", id(ha_time).now());
+        // Wedding countdown to 31 August 2027
+        auto days_from_civil = [](int y, int m, int d) -> int {
+          y -= m <= 2;
+          const int era = (y >= 0 ? y : y - 399) / 400;
+          const unsigned yoe = static_cast<unsigned>(y - era * 400);
+          const unsigned doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1;
+          const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+          return era * 146097 + static_cast<int>(doe) - 719468;
+        };
+        int days_until = days_from_civil(2027, 8, 31) - days_from_civil(now.year, now.month, now.day_of_month);
+        char buf_wedding[32];
+        snprintf(buf_wedding, sizeof(buf_wedding), "Wedding in %d days!", days_until);
+        it.print(100, summary_top + big_space, id(font_medium), id(paper_black), TextAlign::CENTER, buf_wedding);
+      }
       
       //************************ TODAY WEATHER ************************
       int today_temp_y=305;

@@ -4,3 +4,4 @@
 # ESPHome secrets (contains sensitive WiFi credentials, keys, passwords)
 secrets.yaml
 
+fonts/

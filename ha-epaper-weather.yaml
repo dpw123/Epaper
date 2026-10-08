@@ -1,0 +1,169 @@
+###########################################################
+##       
+##       Weather Forecast Sensors
+##       !!Only for HA 2023.12.0 or later
+##
+##       ADD THIS TO HOME ASSISTANT PACKAGES
+##
+###########################################################
+eink_weather_daily:
+  template:
+    - trigger:
+        - platform: time_pattern     # at 6am for the 18h ahead
+          hours: 6 
+          minutes: 1
+        - platform: state
+          entity_id: input_button.update_weather_forecast
+      action:
+        - service: weather.get_forecasts
+          target:
+            entity_id: weather.openweathermap #replace with your weather forecast entity id
+          data:
+            type: hourly #make sure your weather entity support hourly forecast 
+          response_variable: hourly      
+      sensor: 
+        - name: "weather_daily"
+          unique_id: weather_daily 
+          # use forecast[6] (midday) as the days weather condition
+          # replace below 'weather.openweathermap' with your weather forecast entity id
+          # The today_precipitation field should be populated based on the attribute name provided by the weather forecast service.
+          state: >
+            {{ hourly['weather.openweathermap'].forecast[6].condition }}
+          attributes: 
+            today_temperature_max: >
+              {{ max( 
+                 hourly['weather.openweathermap'].forecast[0].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[1].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[2].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[3].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[4].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[5].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[6].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[7].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[8].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[9].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[10].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[11].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[12].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[13].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[14].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[15].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[16].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[17].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[18].temperature | round)
+              }}°C
+            today_temperature_min: >
+              {{ min( 
+                 hourly['weather.openweathermap'].forecast[0].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[1].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[2].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[3].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[4].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[5].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[6].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[7].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[8].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[9].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[10].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[11].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[12].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[13].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[14].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[15].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[16].temperature | round ,
+                 hourly['weather.openweathermap'].forecast[17].temperature | round )
+              }}°C  
+            today_precipitation: >
+              {{ hourly['weather.openweathermap'].forecast[0].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[1].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[2].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[3].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[4].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[5].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[6].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[7].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[8].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[9].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[10].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[11].precipitation | round +
+                 hourly['weather.openweathermap'].forecast[12].precipitation | round  +
+                 hourly['weather.openweathermap'].forecast[13].precipitation | round  +
+                 hourly['weather.openweathermap'].forecast[14].precipitation | round  +
+                 hourly['weather.openweathermap'].forecast[15].precipitation | round  +
+                 hourly['weather.openweathermap'].forecast[16].precipitation | round   +
+                 hourly['weather.openweathermap'].forecast[17].precipitation | round          
+              }}mm    
+            today_wind: >
+              {{ max(hourly['weather.openweathermap'].forecast[0].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[1].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[2].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[3].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[4].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[5].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[6].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[7].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[8].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[9].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[10].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[11].wind_speed | round ,
+                 hourly['weather.openweathermap'].forecast[12].wind_speed | round  ,
+                 hourly['weather.openweathermap'].forecast[13].wind_speed | round  ,
+                 hourly['weather.openweathermap'].forecast[14].wind_speed | round  ,
+                 hourly['weather.openweathermap'].forecast[15].wind_speed | round  ,
+                 hourly['weather.openweathermap'].forecast[16].wind_speed | round  ,
+                 hourly['weather.openweathermap'].forecast[17].wind_speed | round   
+                 ) / 1.6   | round    
+              }}mph   
+
+eink_weather_hourly:
+  template:
+    - trigger:
+        # update interval for the forecast
+        # every hour at 1 min will get forecast
+        # ex: 10:01, 11:01, 12:01 ...
+        - platform: time_pattern     
+          hours: "/1" 
+          minutes: 1
+        - platform: state
+          entity_id: input_button.update_weather_forecast
+      action:
+        - service: weather.get_forecasts
+          target:
+            entity_id: weather.openweathermap #replace with your weather forecast entity id
+          data:
+            type: hourly #make sure your weather entity support hourly forecast 
+          response_variable: hourly      
+      sensor: 
+        - name: "weather_hourly"
+          unique_id: weather_hourly 
+          state: >
+            {{ states('weather.openweathermap') }}
+          attributes: 
+            forecast_weekday_1: >
+              {{ as_timestamp(hourly['weather.openweathermap'].forecast[1].datetime) | timestamp_custom('%I') | int }}{{ as_timestamp(hourly['weather.openweathermap'].forecast[1].datetime) | timestamp_custom('%p') }}   
+            forecast_condition_1: >
+              {{ hourly['weather.openweathermap'].forecast[1].condition }}
+            forecast_temperature_1: >
+              {{ hourly['weather.openweathermap'].forecast[1].temperature | round }}°
+              
+            forecast_weekday_2: >
+              {{ as_timestamp(hourly['weather.openweathermap'].forecast[2].datetime) | timestamp_custom('%I') | int }}{{ as_timestamp(hourly['weather.openweathermap'].forecast[2].datetime) | timestamp_custom('%p') }}   
+            forecast_condition_2: >
+              {{ hourly['weather.openweathermap'].forecast[2].condition }}
+            forecast_temperature_2: >
+              {{ hourly['weather.openweathermap'].forecast[2].temperature | round }}°
+              
+            forecast_weekday_3: >
+              {{ as_timestamp(hourly['weather.openweathermap'].forecast[3].datetime) | timestamp_custom('%I') | int }}{{ as_timestamp(hourly['weather.openweathermap'].forecast[3].datetime) | timestamp_custom('%p') }}   
+            forecast_condition_3: >
+              {{ hourly['weather.openweathermap'].forecast[3].condition }}
+            forecast_temperature_3: >
+              {{ hourly['weather.openweathermap'].forecast[3].temperature | round }}°
+
+            forecast_weekday_4: >
+              {{ as_timestamp(hourly['weather.openweathermap'].forecast[4].datetime) | timestamp_custom('%I') | int }}{{ as_timestamp(hourly['weather.openweathermap'].forecast[4].datetime) | timestamp_custom('%p') }}   
+            forecast_condition_4: >
+              {{ hourly['weather.openweathermap'].forecast[4].condition }}
+            forecast_temperature_4: >
+              {{ hourly['weather.openweathermap'].forecast[4].temperature | round }}°
+              
